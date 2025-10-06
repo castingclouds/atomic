@@ -1,0 +1,50 @@
+[package]
+name = "atomic-api"
+version = "1.1.0"
+edition = "2021"
+description = "REST API server for Atomic VCS repository operations"
+license = "GPL-3.0"
+authors = ["Atomic VCS Contributors"]
+
+[dependencies]
+# Atomic VCS workspace crates - Direct Rust integration following AGENTS.md
+libatomic = { path = "../libatomic" }
+atomic-config = { path = "../atomic-config" }
+atomic-repository = { path = "../atomic-repository" }
+atomic-identity = { path = "../atomic-identity" }
+atomic-remote = { path = "../atomic-remote" }
+
+# Web server framework - minimal dependencies following AGENTS.md
+axum = "0.7"
+tokio = { version = "1.0", features = ["full"] }
+tower-http = { version = "0.5", features = ["cors"] }
+
+# WebSocket support for real-time workflow operations
+tokio-tungstenite = "0.21"
+futures-util = "0.3"
+uuid = { version = "1.0", features = ["v4", "serde"] }
+async-trait = "0.1"
+
+# Serialization following AGENTS.md configuration patterns
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Error handling following AGENTS.md error handling strategy
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Utilities
+tracing = "0.1"
+tracing-subscriber = "0.3"
+chrono = { version = "0.4", features = ["serde"] }
+byteorder = "1.0"
+log = "0.4"
+bytes = "1.0"
+tempfile = "3.0"
+bincode = "1.3"
+
+[dev-dependencies]
+tokio-test = "0.4"
+
+[features]
+default = []

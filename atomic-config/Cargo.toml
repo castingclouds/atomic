@@ -1,0 +1,20 @@
+[package]
+name = "atomic-config"
+description = "Configuration for the atomic version control system"
+version = "1.1.0"
+authors = ["Lee Faus <lee@faus.me>"]
+edition = "2021"
+repository = "https://github.com/leefaus/atomic"
+license = "GPL-2.0"
+include = [ "Cargo.toml", "src" ]
+
+[dependencies]
+anyhow = { version = "1.0", features = ["backtrace"] }
+dialoguer = { version = "0.10", default-features = false, features = ["editor"] }
+dirs-next = "2.0"
+log = "0.4"
+serde = { version = "1.0", features = ["derive"] }
+serde_derive = "1.0"
+toml = { version = "0.5", features = ["preserve_order"] }
+whoami = { version = "1.4", default-features = false }
+edit = "0.1"

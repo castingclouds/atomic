@@ -1,0 +1,33 @@
+[package]
+name = "atomic-identity"
+description = "Functionality to interact with Atomic identities"
+version = "1.1.0"
+authors = ["Lee Faus <lee@faus.me>"]
+edition = "2021"
+repository = "https://github.com/leefaus/atomic"
+license = "GPL-2.0"
+include = ["Cargo.toml", "src"]
+
+[features]
+default = ["openssl"]
+openssl = ["thrussh-keys/openssl"]
+
+[dependencies]
+anyhow = { version = "1.0", features = ["backtrace"] }
+chrono = "0.4"
+dateparser = "0.1"
+dirs-next = "2.0"
+keyring = "2.0"
+libatomic = { path = "../libatomic", version = "1.0.0" }
+log = "0.4"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "1.0"
+thrussh-keys = "0.21"
+toml = { version = "0.7", features = ["preserve_order"] }
+validator = { version = "0.15", default-features = false }
+whoami = "1.4"
+
+atomic-config = { path = "../atomic-config", version = "1.0.0" }
+atomic-interaction = { path = "../atomic-interaction", version = "1.0.0" }
+atomic-repository = { path = "../atomic-repository", version = "1.0.0" }

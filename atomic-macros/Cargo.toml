@@ -1,0 +1,18 @@
+[package]
+name = "atomic-macros"
+description = "Macros used to write libatomic."
+version = "1.1.0"
+authors = ["Lee Faus <lee@faus.me>"]
+edition = "2021"
+repository = "https://github.com/leefaus/atomic"
+license = "GPL-2.0"
+include = [ "Cargo.toml", "src/lib.rs" ]
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn = "1.0"
+quote = "1.0"
+proc-macro2 = "1.0"
+regex = "1.9"

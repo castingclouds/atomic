@@ -1,0 +1,24 @@
+[package]
+name = "atomic-workflows"
+version = "1.1.0"
+edition = "2021"
+authors = ["Atomic VCS Contributors"]
+description = "Type-safe workflow definition system for Atomic VCS change approval processes"
+license = "GPL-2.0-or-later"
+repository = "https://github.com/atomic-vcs/atomic"
+keywords = ["vcs", "workflow", "petri-net", "state-machine"]
+categories = ["development-tools"]
+
+
+
+[dependencies]
+# Core dependencies for MVP
+serde = { version = "1.0", features = ["derive"] }
+thiserror = "1.0"
+paste = "1.0"
+
+# Atomic VCS dependencies
+atomic-config = { path = "../atomic-config" }
+
+[dev-dependencies]
+pretty_assertions = "1.0"

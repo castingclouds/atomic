@@ -1,0 +1,118 @@
+[package]
+name = "atomic"
+description = "A distributed version control system."
+version = "1.1.0"
+authors = ["Lee Faus <lee@weareatomic.dev>"]
+edition = "2021"
+repository = "https://github.com/castingclouds/atomic"
+license = "GPL-2.0-or-later"
+readme = "../README.md"
+include = [
+"../README.md",
+"Cargo.toml",
+"src/commands/fork.rs",
+"src/commands/upgrade.rs",
+"src/commands/pushpull.rs",
+"src/commands/apply.rs",
+"src/commands/client.rs",
+"src/commands/client.html",
+"src/commands/file_operations.rs",
+"src/commands/unrecord.rs",
+"src/commands/identity.rs",
+"src/commands/channel.rs",
+"src/commands/protocol.rs",
+"src/commands/change.rs",
+"src/commands/apply.new.rs",
+"src/commands/reset.rs",
+"src/commands/log.rs",
+"src/commands/init.rs",
+"src/commands/completions.rs",
+"src/commands/record.rs",
+"src/commands/mod.rs",
+"src/commands/dependents.rs",
+"src/commands/tag.rs",
+"src/commands/debug.rs",
+"src/commands/diff.rs",
+"src/commands/client.rs",
+"src/commands/clone.rs",
+"src/commands/archive.rs",
+"src/commands/credit.rs",
+"src/commands/git.rs",
+"src/identity/repair.rs",
+"src/identity/mod.rs",
+"src/identity/load.rs",
+"src/identity/create.rs",
+"src/main.rs",
+"src/repository.rs",
+"src/config.rs",
+"src/progress.rs",
+]
+
+[features]
+git = [ "git2" ]
+keep-changes = []
+default = [ "keep-changes", "openssl" ]
+openssl = [ "thrussh/openssl", "thrussh-keys/openssl" ]
+
+[dependencies]
+human-panic = "2.0.3"
+clap = { version = "4.3", features = [ "derive", "cargo" ] }
+clap_complete = "4.3"
+anyhow = "1.0"
+libatomic = { path = "../libatomic", version = "1.0.0", features = [ "tarball" ] }
+chrono = { version = "0.4.27" }
+ignore = "0.4"
+env_logger = "0.8"
+log = "0.4"
+serde = "1.0"
+serde_json = "1.0"
+serde_derive = "1.0"
+toml = "0.5"
+tokio = { version = "1.29", features = [ "rt-multi-thread", "macros", "sync", "fs" ] }
+thrussh = "0.33"
+thrussh-keys = "0.21"
+thrussh-config = "0.5"
+hyper = { version = "0.14", features = [ "server" ] }
+reqwest = { version = "0.11", features = [ "stream", "json" ] }
+sanakirja = { version = "1.4.1", default-features = false, features = [ "crc32" ] }
+byteorder = "1.4"
+futures = "0.3"
+dirs-next = "2.0"
+lazy_static = "1.4"
+regex = "1.9"
+whoami = "1.4"
+git2 = { version = "0.18.2", optional = true }
+rand = "0.8"
+edit = "0.1.3"
+tempfile = "3.6"
+data-encoding = "2.4"
+futures-util = "0.3"
+termcolor = "1.2"
+atty = "0.2"
+canonical-path = "2.0"
+ctrlc = "=3.2.0"
+url = "2.4"
+path-slash = "0.1"
+bytes = "1.4"
+thiserror = "1.0"
+dateparser = "0.1"
+validator = { version = "0.15", default-features = false }
+ptree = { version = "0.4", default-features = false, features = ["ansi"] }
+keyring = "2.0"
+open = "3"
+async-trait = "0.1"
+
+bincode = "1.3"
+
+atomic-config = { path = "../atomic-config", version = "1.0.0" }
+atomic-identity = { path = "../atomic-identity", version = "1.0.0" }
+atomic-interaction = { path = "../atomic-interaction", version = "1.0.0" }
+atomic-remote = { path = "../atomic-remote", version = "1.0.0" }
+atomic-repository = { path = "../atomic-repository", version = "1.0.0" }
+
+[target.'cfg(unix)'.dependencies]
+pager = "0.16"
+
+[dev-dependencies]
+exitcode = "1.1.2"
+expectrl = "0.7"

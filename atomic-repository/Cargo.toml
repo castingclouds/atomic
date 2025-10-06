@@ -1,0 +1,17 @@
+[package]
+name = "atomic-repository"
+description = "Functionality for interacting with an atomic repository"
+version = "1.1.0"
+authors = ["Lee Faus <lee@faus.me>"]
+edition = "2021"
+repository = "https://github.com/leefaus/atomic"
+license = "GPL-2.0"
+include = [ "Cargo.toml", "src" ]
+
+[dependencies]
+anyhow = { version = "1.0", features = ["backtrace"] }
+log = "0.4"
+libatomic = { path = "../libatomic", version = "1.0.0" }
+atomic-config = { path = "../atomic-config", version = "1.0.0" }
+rlimit = "0.9"
+toml = { version = "0.7", features = ["preserve_order"] }

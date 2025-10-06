@@ -1,0 +1,14 @@
+[workspace]
+members = [
+    "atomic-macros",
+    "atomic",
+    "libatomic",
+    "atomic-interaction",
+    "atomic-config",
+    "atomic-repository",
+    "atomic-identity",
+    "atomic-remote",
+    "atomic-api",
+    "atomic-workflows",
+]
+resolver = "2"
