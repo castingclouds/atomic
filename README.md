@@ -1,6 +1,6 @@
 # Atomic
 
-A mathematically sound distributed version control system that revolutionizes software development through four breakthrough innovations: hybrid patch/snapshot architecture, cryptographic AI attestation, unified node-based DAG, and tag-based dependency consolidation.
+A mathematically sound distributed version control system that revolutionizes software development through four breakthrough innovations: hybrid patch/snapshot architecture, cryptographic AI attestation, unified node-based DAG, and embedded state based workflows.
 
 ## 🚀 Revolutionary Architecture: Four Core Innovations
 
