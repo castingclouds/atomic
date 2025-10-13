@@ -666,7 +666,11 @@ fn parse_edges(input: &str) -> IResult<&str, Vec<PrintableEdge>> {
 
 pub fn parse_header(input: &str) -> IResult<&str, Result<ChangeHeader, toml::de::Error>> {
     map(
-        alt((take_until("# Dependencies"), take_until("# Hunks"))),
+        alt((
+            take_until("[[ai_attestation]]"),
+            take_until("# Dependencies"),
+            take_until("# Hunks"),
+        )),
         |s| toml::de::from_str(s),
     )(input)
 }

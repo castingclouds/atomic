@@ -488,14 +488,6 @@ impl Record {
 
         debug!("has_binary = {:?}", rec.has_binary_files);
         let mut change = if self.edit {
-            // Store attribution metadata before interactive editing
-            let stored_attribution =
-                if let Some(attribution) = libatomic::helpers::create_attribution_from_env() {
-                    libatomic::helpers::serialize_attribution_for_metadata(&attribution).ok()
-                } else {
-                    None
-                };
-
             let mut o = Vec::new();
             debug!("write change");
             change.write(changes, None, true, &mut o)?;
@@ -547,9 +539,64 @@ impl Record {
                 bail!("Cannot parse change")
             }
 
-            // Restore attribution metadata to the change created from editor
-            if let Some(attribution_data) = stored_attribution {
-                change.hashed.metadata = attribution_data;
+            // Merge CLI-provided attribution flags with editor content
+            // CLI flags take precedence over what was in the editor
+            if self.ai_assisted
+                || self.ai_provider.is_some()
+                || self.ai_model.is_some()
+                || self.ai_suggestion_type.is_some()
+                || self.ai_confidence.is_some()
+            {
+                // Read existing metadata from editor if present
+                let existing_attribution = if !change.hashed.metadata.is_empty() {
+                    libatomic::helpers::deserialize_attribution_from_metadata(
+                        &change.hashed.metadata,
+                    )
+                    .ok()
+                } else {
+                    None
+                };
+
+                // Override with CLI flags
+                if let Some(mut attr) = existing_attribution {
+                    if self.ai_assisted {
+                        attr.ai_assisted = true;
+                    }
+                    if let Some(ref provider) = self.ai_provider {
+                        if let Some(ref mut ai_meta) = attr.ai_metadata {
+                            ai_meta.provider = provider.clone();
+                        }
+                    }
+                    if let Some(ref model) = self.ai_model {
+                        if let Some(ref mut ai_meta) = attr.ai_metadata {
+                            ai_meta.model = model.clone();
+                        }
+                    }
+                    if let Some(ref suggestion_type) = self.ai_suggestion_type {
+                        if let Some(ref mut ai_meta) = attr.ai_metadata {
+                            ai_meta.suggestion_type = suggestion_type.clone().into();
+                        }
+                    }
+                    if let Some(confidence) = self.ai_confidence {
+                        attr.confidence = Some(confidence);
+                    }
+
+                    // Serialize updated attribution
+                    if let Ok(metadata_bytes) =
+                        libatomic::helpers::serialize_attribution_for_metadata(&attr)
+                    {
+                        change.hashed.metadata = metadata_bytes;
+                    }
+                } else {
+                    // No existing attribution, create from CLI flags
+                    if let Some(attribution) = libatomic::helpers::create_attribution_from_env() {
+                        if let Ok(metadata_bytes) =
+                            libatomic::helpers::serialize_attribution_for_metadata(&attribution)
+                        {
+                            change.hashed.metadata = metadata_bytes;
+                        }
+                    }
+                }
             }
 
             change

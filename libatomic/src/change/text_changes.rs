@@ -133,6 +133,41 @@ impl LocalChange<Hunk<Option<Hash>, Local>, Author> {
         if write_header {
             let s = toml::ser::to_string_pretty(&self.header)?;
             writeln!(w, "{}", s)?;
+
+            // Always write metadata section template for interactive editing
+            writeln!(w)?;
+            writeln!(w, "[[ai_attestation]]")?;
+
+            if !self.metadata.is_empty() {
+                // Write existing metadata
+                if let Ok(attribution) =
+                    crate::attribution::helpers::deserialize_attribution_from_metadata(
+                        &self.metadata,
+                    )
+                {
+                    writeln!(w, "ai_assisted = {}", attribution.ai_assisted)?;
+                    if let Some(ref ai_meta) = attribution.ai_metadata {
+                        writeln!(w, "ai_provider = \"{}\"", ai_meta.provider)?;
+                        writeln!(w, "ai_model = \"{}\"", ai_meta.model)?;
+                        writeln!(w, "ai_suggestion_type = \"{:?}\"", ai_meta.suggestion_type)?;
+                    }
+                    if let Some(confidence) = attribution.confidence {
+                        writeln!(w, "ai_confidence = {}", confidence)?;
+                    }
+                } else {
+                    // If we can't deserialize, write as base64 for manual inspection
+                    writeln!(w, "# Binary metadata (base64-encoded):")?;
+                    writeln!(w, "# {}", data_encoding::BASE64.encode(&self.metadata))?;
+                }
+            } else {
+                // Write compact template
+                writeln!(w, "ai_assisted = false")?;
+                writeln!(w, "# ai_provider = \"openai\"")?;
+                writeln!(w, "# ai_model = \"gpt-4\"")?;
+                writeln!(w, "# ai_suggestion_type = \"Partial\"")?;
+                writeln!(w, "# ai_confidence = 0.85")?;
+            }
+            writeln!(w)?;
         }
         let mut hashes = HashMap::default();
         let mut i = 2;
@@ -283,17 +318,21 @@ impl Change {
         let (i, m_header) = parse_header(i).map_err(|e| e.to_owned())?;
         let header = m_header?;
 
+        // parse metadata section if present
+        let (i, metadata) = parse_metadata(i).map_err(|e| e.to_owned())?;
+
         // parse dependencies
         let (i, deps) = parse_dependencies(i).map_err(|e| e.to_owned())?;
 
         // parse hunks
         let (_, hunks) = parse_hunks(i).map_err(|e| e.to_owned())?;
 
-        Change::update(header, deps, hunks, updatables)
+        Change::update(header, metadata, deps, hunks, updatables)
     }
 
     fn update(
         header: ChangeHeader,
+        metadata: Vec<u8>,
         dependencies: Vec<PrintableDep>,
         hunks: Vec<(u64, PrintableHunk)>,
         updatables: &mut HashMap<usize, crate::InodeUpdate>,
@@ -306,7 +345,7 @@ impl Change {
                 header,
                 dependencies: Vec::new(),
                 extra_known: Vec::new(),
-                metadata: Vec::new(),
+                metadata,
                 changes: Vec::new(),
                 contents_hash: Hasher::default().finish(),
                 tag: None,
@@ -1170,6 +1209,139 @@ pub trait WriteChangeLine: std::io::Write {
 impl WriteChangeLine for &mut Vec<u8> {}
 impl WriteChangeLine for &mut std::io::Stderr {}
 impl WriteChangeLine for &mut std::io::Stdout {}
+
+/// Parse the metadata section from the change text format
+fn parse_metadata(input: &str) -> Result<(&str, Vec<u8>), nom::Err<nom::error::Error<&str>>> {
+    use nom::{
+        branch::alt,
+        bytes::complete::{tag, take_until},
+        character::complete::{line_ending, multispace0, space0},
+        combinator::value,
+        sequence::{preceded, tuple},
+        IResult,
+    };
+
+    // Helper to parse a single metadata line
+    fn parse_metadata_line(input: &str) -> IResult<&str, (&str, &str)> {
+        use nom::{
+            bytes::complete::{tag, take_while1},
+            character::complete::space0,
+            combinator::rest,
+        };
+
+        let (input, _) = space0(input)?;
+        let (input, key) = take_while1(|c: char| c.is_alphanumeric() || c == '_')(input)?;
+        let (input, _) = space0(input)?;
+        let (input, _) = tag("=")(input)?;
+        let (input, _) = space0(input)?;
+        let (input, value) = rest(input)?;
+        Ok((input, (key, value.trim())))
+    }
+
+    // Try to find metadata section
+    let metadata_section = alt((
+        preceded(
+            tuple((tag("[[ai_attestation]]"), space0, line_ending)),
+            take_until("# Dependencies"),
+        ),
+        preceded(
+            tuple((tag("[[ai_attestation]]"), space0, line_ending)),
+            take_until("# Hunks"),
+        ),
+        value("", tuple((space0, multispace0))),
+    ))(input);
+
+    match metadata_section {
+        Ok((rest, section)) if !section.trim().is_empty() => {
+            // Parse the metadata section
+            let mut ai_assisted = false;
+            let mut ai_provider = None;
+            let mut ai_model = None;
+            let mut ai_suggestion_type = None;
+            let mut ai_confidence = None;
+
+            for line in section.lines() {
+                let line = line.trim();
+                if line.is_empty() || line.starts_with('#') {
+                    continue;
+                }
+
+                if let Ok((_, (key, value))) = parse_metadata_line(line) {
+                    match key {
+                        "ai_assisted" => {
+                            ai_assisted = value == "true";
+                        }
+                        "ai_provider" => {
+                            ai_provider = Some(value.trim_matches('"').to_string());
+                        }
+                        "ai_model" => {
+                            ai_model = Some(value.trim_matches('"').to_string());
+                        }
+                        "ai_suggestion_type" => {
+                            ai_suggestion_type = Some(value.trim_matches('"').to_string());
+                        }
+                        "ai_confidence" => {
+                            if let Ok(conf) = value.parse::<f64>() {
+                                ai_confidence = Some(conf);
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+            }
+
+            // Always serialize attribution metadata to explicitly record ai_assisted status
+            // This distinguishes "not AI-assisted" from "no metadata available"
+            {
+                let ai_metadata = if ai_provider.is_some() || ai_model.is_some() {
+                    Some(crate::attribution::AIMetadata {
+                        provider: ai_provider.unwrap_or_else(|| "unknown".to_string()),
+                        model: ai_model.unwrap_or_else(|| "unknown".to_string()),
+                        prompt_hash: crate::pristine::Hash::NONE,
+                        suggestion_type: ai_suggestion_type
+                            .and_then(|s| match s.as_str() {
+                                "complete" => Some(crate::attribution::SuggestionType::Complete),
+                                "partial" => Some(crate::attribution::SuggestionType::Partial),
+                                "collaborative" => {
+                                    Some(crate::attribution::SuggestionType::Collaborative)
+                                }
+                                "inspired" => Some(crate::attribution::SuggestionType::Inspired),
+                                "review" => Some(crate::attribution::SuggestionType::Review),
+                                "refactor" => Some(crate::attribution::SuggestionType::Refactor),
+                                _ => None,
+                            })
+                            .unwrap_or(crate::attribution::SuggestionType::Complete),
+                        human_review_time: None,
+                        acceptance_confidence: ai_confidence.unwrap_or(1.0),
+                        generation_timestamp: chrono::Utc::now(),
+                        token_count: None,
+                        model_params: None,
+                    })
+                } else {
+                    None
+                };
+
+                let attribution = crate::attribution::SerializedAttribution {
+                    author: None,
+                    ai_assisted,
+                    ai_metadata,
+                    confidence: ai_confidence,
+                    attribution_version: 1,
+                };
+
+                if let Ok(metadata_bytes) =
+                    crate::attribution::helpers::serialize_attribution_for_metadata(&attribution)
+                {
+                    return Ok((rest, metadata_bytes));
+                }
+            }
+
+            Ok((rest, Vec::new()))
+        }
+        Ok((rest, _)) => Ok((rest, Vec::new())),
+        Err(e) => Err(e),
+    }
+}
 
 pub fn get_change_contents<C: ChangeStore>(
     changes: &C,
