@@ -672,24 +672,38 @@ async fn post_atomic_protocol(
         match apply_result {
             Ok(_) => {
                 // Output changes to working copy BEFORE committing
-                // This matches the behavior of the SSH protocol handler
-                info!("Outputting applied change {} to working copy", apply_hash);
-                libatomic::output::output_repository_no_pending(
-                    &repository.working_copy,
-                    &repository.changes,
-                    &txn,
-                    &mut_channel,
-                    "",
-                    true,
-                    None,
-                    std::thread::available_parallelism()
-                        .map(|p| p.get())
-                        .unwrap_or(1),
-                    0,
-                )
-                .map_err(|e| {
-                    ApiError::internal(format!("Failed to output to working copy: {}", e))
-                })?;
+                // Skip for bare/server repositories that don't have working copy files
+                let is_bare_repo = !repository.path.exists()
+                    || repository
+                        .path
+                        .read_dir()
+                        .map(|mut d| d.next().is_none())
+                        .unwrap_or(true);
+
+                if !is_bare_repo {
+                    info!("Outputting applied change {} to working copy", apply_hash);
+                    libatomic::output::output_repository_no_pending(
+                        &repository.working_copy,
+                        &repository.changes,
+                        &txn,
+                        &mut_channel,
+                        "",
+                        true,
+                        None,
+                        std::thread::available_parallelism()
+                            .map(|p| p.get())
+                            .unwrap_or(1),
+                        0,
+                    )
+                    .map_err(|e| {
+                        ApiError::internal(format!("Failed to output to working copy: {}", e))
+                    })?;
+                } else {
+                    info!(
+                        "Skipping working copy output for bare repository (change {} applied to database only)",
+                        apply_hash
+                    );
+                }
 
                 // Commit the transaction
                 txn.commit().map_err(|e| {

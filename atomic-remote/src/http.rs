@@ -250,7 +250,14 @@ impl Http {
             let body = match node.node_type {
                 NodeType::Change => {
                     libatomic::changestore::filesystem::push_filename(&mut local, &node.hash);
-                    let change = std::fs::read(&local)?;
+                    let change = std::fs::read(&local).map_err(|e| {
+                        anyhow::anyhow!(
+                            "Failed to read change file for hash {}: {} (path: {})",
+                            node.hash.to_base32(),
+                            e,
+                            local.display()
+                        )
+                    })?;
                     base32 = node.hash.to_base32();
                     to_channel.push(("apply", &base32));
                     change
@@ -261,7 +268,15 @@ impl Http {
                     libatomic::changestore::filesystem::push_tag_filename(&mut local, &node.state);
 
                     // Open tag file and extract short version
-                    let mut tag_file = libatomic::tag::OpenTagFile::open(&local, &node.state)?;
+                    let mut tag_file = libatomic::tag::OpenTagFile::open(&local, &node.state)
+                        .map_err(|e| {
+                            anyhow::anyhow!(
+                                "Failed to open tag file for state {}: {} (path: {})",
+                                node.state.to_base32(),
+                                e,
+                                local.display()
+                            )
+                        })?;
                     let mut short_data = Vec::new();
                     tag_file.short(&mut short_data)?;
 
